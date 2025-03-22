@@ -1,6 +1,6 @@
-# Bangalore City 3D Simulation
+# Bangalore Delivery Rush 
 
-An interactive 3D visualization of Bangalore city using Three.js.
+An interactive 3D visualization of Bangalore city Game using Three.js.
 
 ## Features
 

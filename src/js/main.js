@@ -7,6 +7,7 @@ import { Player } from './components/Player.js';
 import { CITY_CONFIG } from './config/cityConfig.js';
 import '../styles/main.css';
 import { Game } from './components/Game.js';
+import { Minimap } from './components/Minimap.js';
 
 // UI elements
 const scoreElement = document.getElementById('score');
@@ -88,6 +89,9 @@ class BangaloreCity {
 
         // Initialize UI elements
         this.setupDirectionArrow();
+        
+        // Apply pulse animation to direction arrow
+        this.pulseArrow();
 
         // Initialize game state
         gameState.score = 0;
@@ -240,6 +244,28 @@ class BangaloreCity {
         
         // Hide loading screen after everything is initialized
         setTimeout(() => this.hideLoadingScreen(), 1000);
+        
+        // Initialize minimap with a delay to ensure everything else is loaded
+        setTimeout(() => {
+            this.initializeMinimap();
+        }, 2000);
+    }
+
+    initializeMinimap() {
+        console.log("Initializing minimap...");
+        try {
+            // Create minimap with player state
+            this.minimap = new Minimap(this.scene, this.playerState);
+            
+            // Set current destination if available
+            if (this.game && this.game.currentMission) {
+                this.minimap.setDestination(this.game.currentMission.position);
+            }
+            
+            console.log("Minimap initialized successfully");
+        } catch (error) {
+            console.error("Error initializing minimap:", error);
+        }
     }
 
     generateRoads() {
@@ -388,6 +414,13 @@ class BangaloreCity {
         
         // Rotate the road to align with direction
         roadGroup.rotation.y = Math.atan2(direction.x, direction.z);
+        
+        // Add metadata for minimap
+        roadGroup.userData = {
+            type: 'road',
+            start: start,
+            end: end
+        };
         
         // Add to scene
         this.scene.add(roadGroup);
@@ -1072,6 +1105,99 @@ class BangaloreCity {
         this.camera.lookAt(this.camera.position.clone().add(currentLookAt));
     }
 
+    setupDirectionArrow() {
+        // Get existing arrow element
+        const existingArrow = document.getElementById('direction-arrow');
+        if (existingArrow) {
+            // Remove existing arrow to avoid duplicates
+            existingArrow.remove();
+        }
+        
+        // Create container div
+        const arrowContainer = document.createElement('div');
+        arrowContainer.id = 'direction-arrow-container';
+        
+        // Create arrow element
+        const arrowElement = document.createElement('div');
+        arrowElement.id = 'direction-arrow';
+        arrowElement.innerHTML = '⬆';
+        
+        // Add arrow to container
+        arrowContainer.appendChild(arrowElement);
+        
+        // Add container to document
+        document.body.appendChild(arrowContainer);
+        
+        // Add CSS styles
+        const style = document.createElement('style');
+        style.textContent = `
+            #direction-arrow-container {
+                position: fixed;
+                top: 80px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                pointer-events: none;
+            }
+            
+            #direction-arrow {
+                font-size: 48px;
+                color: white;
+                text-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
+                transform-origin: center;
+                transition: transform 0.3s ease-out, color 0.3s ease-out;
+            }
+            
+            #direction-arrow::after {
+                content: attr(data-distance);
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 18px;
+                font-weight: bold;
+                white-space: nowrap;
+                margin-top: 10px;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+                background: rgba(0,0,0,0.5);
+                padding: 5px 10px;
+                border-radius: 5px;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    pulseArrow() {
+        const arrowElement = document.getElementById('direction-arrow');
+        if (!arrowElement) return;
+        
+        let scale = 1.0;
+        let growing = true;
+        
+        const pulseInterval = setInterval(() => {
+            // Stop if arrow no longer exists
+            if (!document.getElementById('direction-arrow')) {
+                clearInterval(pulseInterval);
+                return;
+            }
+            
+            if (growing) {
+                scale += 0.01;
+                if (scale >= 1.1) growing = false;
+            } else {
+                scale -= 0.01;
+                if (scale <= 1.0) growing = true;
+            }
+            
+            // Apply scale but keep any existing rotation
+            const rotation = arrowElement.style.transform || '';
+            const rotateMatch = rotation.match(/rotate\(([^)]+)\)/);
+            const rotateValue = rotateMatch ? rotateMatch[0] : '';
+            
+            arrowElement.style.transform = `scale(${scale}) ${rotateValue}`;
+        }, 50);
+    }
+
     updateDirectionArrow() {
         const arrowElement = document.getElementById('direction-arrow');
         if (!arrowElement || !this.game || !this.game.currentMission) return;
@@ -1108,7 +1234,8 @@ class BangaloreCity {
         }
 
         // Update arrow rotation with the relative angle
-        arrowElement.style.transform = `translateX(-50%) rotate(${degrees}deg)`;
+        // This applies ONLY rotation and preserves scaling from the pulse animation
+        arrowElement.style.transform = `rotate(${degrees}deg)`;
 
         // Get direction text based on angle
         let directionText = "";
@@ -1156,6 +1283,11 @@ class BangaloreCity {
 
         // Show distance and direction
         arrowElement.setAttribute('data-distance', `${Math.round(distance)}m ${directionText}`);
+        
+        // Update minimap destination if available
+        if (this.minimap) {
+            this.minimap.setDestination(missionPos);
+        }
     }
 
     completeDelivery() {
@@ -1225,53 +1357,6 @@ class BangaloreCity {
         setTimeout(() => {
             successElement.remove();
         }, 1500);
-    }
-
-    setupDirectionArrow() {
-        const arrowElement = document.getElementById('direction-arrow');
-        if (arrowElement) {
-            // Update arrow appearance
-            arrowElement.innerHTML = '⬆'; // Bigger arrow character
-            
-            // Add CSS for glowing arrow and distance display
-            const style = document.createElement('style');
-            style.textContent = `
-                #direction-arrow {
-                    position: fixed;
-                    top: 80px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    font-size: 48px;
-                    z-index: 1000;
-                    animation: pulse 2s infinite;
-                    transition: all 0.3s ease-out;
-                }
-
-                @keyframes pulse {
-                    0% { transform: translateX(-50%) scale(1); opacity: 1; }
-                    50% { transform: translateX(-50%) scale(1.1); opacity: 0.8; }
-                    100% { transform: translateX(-50%) scale(1); opacity: 1; }
-                }
-
-                #direction-arrow::after {
-                    content: attr(data-distance);
-                    position: absolute;
-                    top: 100%;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    font-size: 18px;
-                    font-weight: bold;
-                    white-space: nowrap;
-                    margin-top: 10px;
-                    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-                    background: rgba(0,0,0,0.5);
-                    padding: 5px 10px;
-                    border-radius: 5px;
-                    transition: all 0.3s ease-out;
-                }
-            `;
-            document.head.appendChild(style);
-        }
     }
 
     startGameTimer() {
@@ -1399,40 +1484,6 @@ class BangaloreCity {
         return group;
     }
 
-    startGame() {
-        this.showLoadingScreen();
-        
-        // Generate city elements
-        this.generateRoads();
-        this.generateBuildings();
-        this.generateLandmarks();
-        
-        // Load road network
-        this.roadNetwork = new RoadNetwork(this.scene, CITY_CONFIG);
-        
-        // Create buildings
-        const buildingGenerator = new BuildingGenerator(this.scene, CITY_CONFIG);
-        buildingGenerator.generateBuildings();
-        
-        // Load player
-        this.player = new Player(this.scene, this.camera);
-        
-        // Setup game mechanics
-        this.game = new Game(this.scene, this.camera, CITY_CONFIG);
-        
-        // Setup event listeners
-        this.setupEventListeners();
-        
-        // Show controls hint
-        this.createControlsHint();
-        
-        // Start animation loop
-        this.animate();
-        
-        // Hide loading screen after everything is initialized
-        this.hideLoadingScreen();
-    }
-
     createGround() {
         // Create a large ground plane
         const groundSize = 1000;
@@ -1453,4 +1504,4 @@ class BangaloreCity {
 // Initialize the game when the DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     const game = new BangaloreCity();
-}); 
+});
