@@ -423,3 +423,71 @@ body {
 .mobile-control-button:active {
     background-color: rgba(33, 150, 243, 0.7);
 } 
+/* Enhanced Minimap Styles for Bangalore Delivery Rush */
+
+#minimap-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 220px;  /* Larger size */
+    height: 220px; /* Larger size */
+    background-color: rgba(0, 0, 0, 0.5);
+    border: 4px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 1000;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+}
+
+#north-indicator {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ff3333;
+    font-weight: bold;
+    font-size: 20px;
+    z-index: 1001;
+    text-shadow: 0px 0px 4px #000, 0px 0px 4px #000, 0px 0px 4px #000;
+    letter-spacing: 1px;
+}
+
+#minimap-toggle-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    border: 2px solid #333;
+    color: #333;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+#minimap-toggle-button:hover {
+    background-color: rgba(255, 255, 255, 1);
+    transform: scale(1.1);
+}
+
+#minimap-toggle-button:active {
+    background-color: rgba(200, 200, 200, 0.8);
+    transform: scale(0.95);
+}
+
+/* Custom animation for minimap elements */
+@keyframes pulse {
+    0% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.7; }
+}
+
+.minimap-pulsing {
+    animation: pulse 2s infinite ease-in-out;
+}

@@ -1,0 +1,145 @@
+/* 
+ * Bangalore Delivery Rush - Game Improvements CSS
+ * Add this file to your project and link it in your HTML
+ */
+
+/* Score Popup Animation */
+@keyframes scorePopup {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+}
+
+.score-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #4CAF50;
+    font-size: 32px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: scorePopup 1.5s ease-out forwards;
+    z-index: 2000;
+    pointer-events: none;
+}
+
+/* Success Flash Animation */
+@keyframes flash {
+    0% { opacity: 0.7; }
+    100% { opacity: 0; }
+}
+
+/* Delivery Success Animation */
+@keyframes fadeInOut {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+}
+
+.delivery-success {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 128, 0, 0.2);
+    border: 2px solid #00ff00;
+    border-radius: 10px;
+    padding: 20px;
+    color: #fff;
+    text-align: center;
+    animation: fadeInOut 1.5s ease-in-out forwards;
+    z-index: 1000;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+    pointer-events: none;
+}
+
+.success-content {
+    text-shadow: 0 0 10px #00ff00;
+}
+
+/* Notification Animation */
+@keyframes notificationAnimation {
+    0% { opacity: 0; transform: translate(-50%, -20px); }
+    10% { opacity: 1; transform: translate(-50%, 0); }
+    90% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -20px); }
+}
+
+/* Improved Direction Arrow */
+#direction-arrow {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 48px;
+    color: white;
+    text-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
+    transform-origin: center;
+    transition: transform 0.3s ease-out, color 0.3s ease-out;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+#direction-arrow::after {
+    content: attr(data-distance);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18px;
+    font-weight: bold;
+    white-space: nowrap;
+    margin-top: 10px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.5);
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+/* Improved Minimap Styles */
+#minimap-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 180px;
+    height: 180px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border: 3px solid #fff;
+    border-radius: 50%;
+    overflow: hidden;
+    z-index: 1000;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+#north-indicator {
+    position: absolute;
+    top: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: red;
+    font-weight: bold;
+    font-size: 16px;
+    z-index: 1001;
+    text-shadow: 1px 1px 2px black;
+}
+
+#minimap-toggle-button {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #333;
+    color: #333;
+    font-size: 14px;
+    cursor: pointer;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

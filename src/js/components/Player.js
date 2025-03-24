@@ -263,8 +263,17 @@ export class Player {
     }
 
     getPosition() {
-        return this.motorcycle ? this.motorcycle.position : this.position;
+        // Make sure we return a valid position even if motorcycle isn't loaded yet
+        if (this.motorcycle) {
+            return this.motorcycle.position.clone();
+        } else if (this.position) {
+            return this.position.clone();
+        } else {
+            console.warn("No valid position found for player. Returning default position.");
+            return new THREE.Vector3(0, 0, 0);
+        }
     }
+    
 
     update(state) {
         if (!this.motorcycle) return;
@@ -295,7 +304,41 @@ export class Player {
             }
         });
     }
-
+    getDeliveryCollider() {
+        // Create a delivery detection sphere around the player
+        if (!this._deliveryCollider) {
+            const geometry = new THREE.SphereGeometry(15, 16, 16);
+            const material = new THREE.MeshBasicMaterial({ 
+                color: 0x00ff00, 
+                transparent: true, 
+                opacity: 0.2,
+                wireframe: true
+            });
+            this._deliveryCollider = new THREE.Mesh(geometry, material);
+            
+            // Only show in debug mode
+            this._deliveryCollider.visible = false;
+            
+            if (this.motorcycle) {
+                this.motorcycle.add(this._deliveryCollider);
+            } else if (this.scene) {
+                this.scene.add(this._deliveryCollider);
+                // Update position in scene
+                this._deliveryCollider.position.copy(this.getPosition());
+            }
+        }
+        
+        // Make sure collider follows the player
+        if (this._deliveryCollider.parent !== this.motorcycle && this.motorcycle) {
+            if (this._deliveryCollider.parent) {
+                this._deliveryCollider.parent.remove(this._deliveryCollider);
+            }
+            this.motorcycle.add(this._deliveryCollider);
+            this._deliveryCollider.position.set(0, 0, 0);
+        }
+        
+        return this._deliveryCollider;
+    }
     handleMovement() {
         const currentSpeed = this.speed * (this.isBoosting ? this.boostFactor : 1);
 

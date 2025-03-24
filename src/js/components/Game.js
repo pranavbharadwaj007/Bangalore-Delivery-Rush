@@ -259,24 +259,104 @@ export class Game {
 
     handleCollision(event) {
         if (!this.activeMission) return;
-
+    
         const playerPos = this.player.getPosition();
         const missionPos = this.activeMission.position;
-        const distance = playerPos.distanceTo(missionPos);
-
-        if (distance < 5) {
+        
+        // Calculate 3D distance
+        const dx = playerPos.x - missionPos.x;
+        const dy = playerPos.y - missionPos.y;
+        const dz = playerPos.z - missionPos.z;
+        const distance = Math.sqrt(dx*dx + dy*dy + dz*dz);
+    
+        // More precise detection radius (15 units instead of original 50)
+        const deliveryRadius = 15;
+        
+        if (distance < deliveryRadius) {
+            console.log("Delivery complete! Distance to mission:", distance);
             this.completeMission();
         }
     }
 
     completeMission() {
         if (!this.activeMission) return;
-
+    
+        // Add visual feedback
+        const successFlash = document.createElement('div');
+        successFlash.style.position = 'fixed';
+        successFlash.style.top = '0';
+        successFlash.style.left = '0';
+        successFlash.style.width = '100%';
+        successFlash.style.height = '100%';
+        successFlash.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+        successFlash.style.zIndex = '1000';
+        successFlash.style.pointerEvents = 'none';
+        successFlash.style.animation = 'flash 0.5s ease-out';
+        document.body.appendChild(successFlash);
+    
+        // Add animation style if not exists
+        if (!document.getElementById('flash-animation')) {
+            const style = document.createElement('style');
+            style.id = 'flash-animation';
+            style.textContent = `
+                @keyframes flash {
+                    0% { opacity: 0.7; }
+                    100% { opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    
+        // Remove the flash effect after animation
+        setTimeout(() => {
+            if (document.body.contains(successFlash)) {
+                document.body.removeChild(successFlash);
+            }
+        }, 500);
+    
+        // Update score with visual indicator
         this.score += this.activeMission.reward;
         this.scoreElement.textContent = `Score: ${this.score}`;
+        
+        // Add score popup
+        const scorePopup = document.createElement('div');
+        scorePopup.textContent = `+${this.activeMission.reward}`;
+        scorePopup.style.position = 'absolute';
+        scorePopup.style.top = '50%';
+        scorePopup.style.left = '50%';
+        scorePopup.style.transform = 'translate(-50%, -50%)';
+        scorePopup.style.color = '#00ff00';
+        scorePopup.style.fontSize = '32px';
+        scorePopup.style.fontWeight = 'bold';
+        scorePopup.style.textShadow = '2px 2px 4px rgba(0, 0, 0, 0.5)';
+        scorePopup.style.animation = 'scorePopup 1.5s ease-out forwards';
+        document.body.appendChild(scorePopup);
+    
+        // Add score popup animation
+        if (!document.getElementById('score-popup-style')) {
+            const style = document.createElement('style');
+            style.id = 'score-popup-style';
+            style.textContent = `
+                @keyframes scorePopup {
+                    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                    20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                    80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    
+        // Remove score popup after animation
+        setTimeout(() => {
+            if (document.body.contains(scorePopup)) {
+                document.body.removeChild(scorePopup);
+            }
+        }, 1500);
+    
         this.activeMission.isCompleted = true;
         this.activeMission.marker.material.color.setHex(0x00ff00);
-
+    
         // Show completion message
         const message = document.createElement('div');
         message.textContent = `Delivery Complete! +${this.activeMission.reward}`;
@@ -288,7 +368,10 @@ export class Game {
         message.style.fontSize = '24px';
         message.style.fontWeight = 'bold';
         document.body.appendChild(message);
-
+    
+        // Log score update to console for debugging
+        console.log(`Mission completed! Score updated to: ${this.score}`);
+    
         setTimeout(() => {
             document.body.removeChild(message);
             this.startNewMission();

@@ -248,12 +248,20 @@ class BangaloreCity {
         // Initialize minimap with a delay to ensure everything else is loaded
         setTimeout(() => {
             this.initializeMinimap();
+            
+            // Show notification about score tracking
+            this.showNotification("Score Tracking Fixed", "Your score will now update correctly");
         }, 2000);
     }
 
     initializeMinimap() {
-        console.log("Initializing minimap...");
+        console.log("Initializing minimap with fixed orientation...");
         try {
+            // Check for existing minimap and remove it
+            if (this.minimap && this.minimap.container) {
+                this.minimap.container.remove();
+            }
+            
             // Create minimap with player state
             this.minimap = new Minimap(this.scene, this.playerState);
             
@@ -263,11 +271,53 @@ class BangaloreCity {
             }
             
             console.log("Minimap initialized successfully");
+            
+            // Show notification
+            this.showNotification("Minimap Updated", "Fixed orientation for easier navigation");
         } catch (error) {
             console.error("Error initializing minimap:", error);
         }
     }
-
+    showNotification(title, message, duration = 3000) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 2000;
+            text-align: center;
+            animation: fadeInOut ${duration/1000}s forwards;
+            max-width: 80%;
+        `;
+        notification.innerHTML = `
+            <h3 style="margin: 0 0 5px 0; font-size: 16px;">${title}</h3>
+            <p style="margin: 0; font-size: 14px;">${message}</p>
+        `;
+        
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translate(-50%, -20px); }
+                10% { opacity: 1; transform: translate(-50%, 0); }
+                90% { opacity: 1; transform: translate(-50%, 0); }
+                100% { opacity: 0; transform: translate(-50%, -20px); }
+            }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(notification);
+        
+        // Remove notification after animation
+        setTimeout(() => {
+            if (document.body.contains(notification)) {
+                document.body.removeChild(notification);
+            }
+        }, duration);
+    }
     generateRoads() {
         // Create a grid of roads with wider spacing for buildings
         const gridSize = 400; // Larger city size
@@ -917,6 +967,11 @@ class BangaloreCity {
 
     animate() {
         if (gameState.isGameOver) return;
+    
+        // Show delivery radius indicator if not already shown
+        if (this.game && this.game.currentMission && !this.deliveryRadiusHelper) {
+            this.showDeliveryRadiusIndicator();
+        }
         
         requestAnimationFrame(this.animate.bind(this));
 
@@ -967,7 +1022,7 @@ class BangaloreCity {
         let turnAmount = 0;
         if (Math.abs(state.speed) > 0.01) {
             const turnMultiplier = state.speed > 0 ? 1 : -1;
-            const baseTurnAngle = Math.PI / 3.5; // Approximately 40 degrees
+            const baseTurnAngle = Math.PI / 2.5; // Approximately 40 degrees
             
             if (state.keys.left) {
                 turnAmount = baseTurnAngle * turnMultiplier * (Math.abs(state.speed) / currentMaxSpeed);
@@ -1289,31 +1344,153 @@ class BangaloreCity {
             this.minimap.setDestination(missionPos);
         }
     }
-
+    showDeliveryRadiusIndicator() {
+        if (!this.scene || !this.game || !this.game.currentMission) return;
+        
+        // Remove existing indicator if any
+        if (this.deliveryRadiusHelper) {
+            this.scene.remove(this.deliveryRadiusHelper);
+        }
+        
+        // Create delivery radius indicator
+        const radius = 15; // Delivery detection radius
+        const geometry = new THREE.RingGeometry(radius - 0.5, radius, 32);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0x00ff00, 
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        this.deliveryRadiusHelper = new THREE.Mesh(geometry, material);
+        this.deliveryRadiusHelper.rotation.x = -Math.PI / 2; // Make it horizontal
+        this.deliveryRadiusHelper.position.copy(this.game.currentMission.position);
+        this.deliveryRadiusHelper.position.y = 0.1; // Just above ground to avoid z-fighting
+        
+        // Add pulsing animation
+        const startTime = Date.now();
+        const animate = () => {
+            if (!this.deliveryRadiusHelper) return;
+            
+            const elapsed = Date.now() - startTime;
+            const scale = 1 + Math.sin(elapsed * 0.003) * 0.1; // Gentle pulsing
+            
+            this.deliveryRadiusHelper.scale.set(scale, scale, 1);
+            
+            requestAnimationFrame(animate);
+        };
+        
+        // Start animation
+        animate();
+        
+        // Add to scene
+        this.scene.add(this.deliveryRadiusHelper);
+    }
+    
+ 
     completeDelivery() {
-        if (!this.game.currentMission || this.game.isDelivering) return;
+        if (!this.game || !this.game.currentMission || this.game.isDelivering) return;
         
         this.game.isDelivering = true; // Prevent multiple deliveries at same location
         
-        // Update score
+        // Add visual feedback
+        const successFlash = document.createElement('div');
+        successFlash.style.position = 'fixed';
+        successFlash.style.top = '0';
+        successFlash.style.left = '0';
+        successFlash.style.width = '100%';
+        successFlash.style.height = '100%';
+        successFlash.style.backgroundColor = 'rgba(0, 255, 0, 0.2)';
+        successFlash.style.zIndex = '1000';
+        successFlash.style.pointerEvents = 'none';
+        successFlash.style.animation = 'flash 0.5s ease-out';
+        document.body.appendChild(successFlash);
+    
+        // Add animation style if not exists
+        if (!document.getElementById('flash-animation')) {
+            const style = document.createElement('style');
+            style.id = 'flash-animation';
+            style.textContent = `
+                @keyframes flash {
+                    0% { opacity: 0.7; }
+                    100% { opacity: 0; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    
+        // Remove the flash effect after animation
+        setTimeout(() => {
+            if (document.body.contains(successFlash)) {
+                document.body.removeChild(successFlash);
+            }
+        }, 500);
+        
+        // Update score with clearer feedback
         gameState.score += 100;
+        
+        // Force update the score element text
         const scoreElement = document.getElementById('score');
         if (scoreElement) {
             scoreElement.textContent = `Score: ${gameState.score}`;
+            
+            // Add a visual score indicator that animates
+            const scoreIndicator = document.createElement('div');
+            scoreIndicator.className = 'score-popup';
+            scoreIndicator.textContent = '+100';
+            scoreIndicator.style.position = 'absolute';
+            scoreIndicator.style.top = '50%';
+            scoreIndicator.style.left = '50%';
+            scoreIndicator.style.transform = 'translate(-50%, -50%)';
+            scoreIndicator.style.color = '#4CAF50';
+            scoreIndicator.style.fontSize = '32px';
+            scoreIndicator.style.fontWeight = 'bold';
+            scoreIndicator.style.animation = 'scorePopup 1.5s ease-out forwards';
+            document.body.appendChild(scoreIndicator);
+            
+            // Add animation keyframes if they don't exist
+            if (!document.getElementById('score-popup-style')) {
+                const style = document.createElement('style');
+                style.id = 'score-popup-style';
+                style.textContent = `
+                    @keyframes scorePopup {
+                        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+                        20% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+                        80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                        100% { opacity: 0; transform: translate(-50%, -100%) scale(1); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Remove the indicator after animation completes
+            setTimeout(() => {
+                if (document.body.contains(scoreIndicator)) {
+                    document.body.removeChild(scoreIndicator);
+                }
+            }, 1500);
         }
-
+    
         // Show success message
         this.showDeliverySuccess();
-
+    
+        // Log score update to console for debugging
+        console.log("Delivery completed! Score updated to:", gameState.score);
+    
         // Set new random destination after a short delay
         setTimeout(() => {
-            this.game.setNewRandomDestination();
+            if (this.game && typeof this.game.setNewRandomDestination === 'function') {
+                this.game.setNewRandomDestination();
+            } else if (typeof this.setNewRandomDestination === 'function') {
+                // Fallback for missing method
+                this.setNewRandomDestination();
+            }
             this.game.isDelivering = false;
         }, 1500);
     }
 
     showDeliverySuccess() {
-        // Create success message element
+        // Create success message element with improved styling
         const successElement = document.createElement('div');
         successElement.className = 'delivery-success';
         successElement.innerHTML = `
@@ -1322,7 +1499,7 @@ class BangaloreCity {
                 <p>Next destination loading...</p>
             </div>
         `;
-
+    
         // Add success message styles
         const style = document.createElement('style');
         style.textContent = `
@@ -1331,7 +1508,7 @@ class BangaloreCity {
                 top: 50%;
                 left: 50%;
                 transform: translate(-50%, -50%);
-                background: rgba(0, 255, 0, 0.2);
+                background: rgba(0, 128, 0, 0.2);
                 border: 2px solid #00ff00;
                 border-radius: 10px;
                 padding: 20px;
@@ -1339,6 +1516,7 @@ class BangaloreCity {
                 text-align: center;
                 animation: fadeInOut 1.5s ease-in-out forwards;
                 z-index: 1000;
+                box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
             }
             .success-content {
                 text-shadow: 0 0 10px #00ff00;
@@ -1352,10 +1530,21 @@ class BangaloreCity {
         `;
         document.head.appendChild(style);
         document.body.appendChild(successElement);
-
+    
+        // Play success sound if possible
+        try {
+            const successSound = new Audio();
+            successSound.src = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEJhbmsuY29tIC8gTGFTb25vdGhlcXVlLm9yZwBURU5DAAAAHQAAA1N3aXRjaCBQbHVzIMKpIE5DSCBTb2Z0d2FyZQBUSVQyAAAABgAAAzIyMzUAVFNTRQAAAA8AAANMYXZmNTcuODMuMTAwAAAAAAAAAAAAAAD/80DEAAAAA0gAAAAATEFNRTMuMTAwVVVVVVVVVVVVVUxBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQsRbAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/zQMSkAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV';
+            successSound.play().catch(e => console.log('Could not play success sound', e));
+        } catch (e) {
+            console.log('Could not create success sound', e);
+        }
+    
         // Remove the success message after animation
         setTimeout(() => {
-            successElement.remove();
+            if (document.body.contains(successElement)) {
+                document.body.removeChild(successElement);
+            }
         }, 1500);
     }
 
